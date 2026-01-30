@@ -1,16 +1,63 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom"; // Essential for routing
 import { databases, storage, ID } from "../lib/appwrite";
 
-export default function CourseDetail({ course, user }) {
+export default function CourseDetail({ user }) {
+    const { id } = useParams(); // Get course ID from URL
+    const navigate = useNavigate();
+    
+    const [course, setCourse] = useState(null);
     const [file, setFile] = useState(null);
     const [uploading, setUploading] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [enrollmentStatus, setEnrollmentStatus] = useState(null);
+
+    useEffect(() => {
+        const fetchInitialData = async () => {
+            try {
+                setLoading(true);
+                // 1. Fetch Course Details (Fixes the undefined error on refresh)
+                const courseData = await databases.getDocument(
+                    import.meta.env.VITE_DATABASE_ID,
+                    "courses",
+                    id
+                );
+                setCourse(courseData);
+
+                // 2. Check if user already submitted proof
+                if (user) {
+                    const existing = await databases.listDocuments(
+                        import.meta.env.VITE_DATABASE_ID,
+                        "enrollments",
+                        [
+                            import.meta.env.QUERY.equal("courseId", id),
+                            import.meta.env.QUERY.equal("userId", user.$id)
+                        ]
+                    );
+                    if (existing.total > 0) {
+                        setEnrollmentStatus(existing.documents[0].status);
+                    }
+                }
+            } catch (err) {
+                console.error("Fetch Error:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (id) fetchInitialData();
+    }, [id, user]);
 
     const handlePaymentSubmit = async () => {
         if (!file) return alert("Please upload payment screenshot");
+        if (!user) return alert("Please login to enroll");
+
         setUploading(true);
         try {
+            // 1. Upload to Storage
             const upload = await storage.createFile(import.meta.env.VITE_BUCKET_ID, ID.unique(), file);
             
+            // 2. Create Database Entry
             await databases.createDocument(import.meta.env.VITE_DATABASE_ID, "enrollments", ID.unique(), {
                 userId: user.$id,
                 courseId: course.$id,
@@ -19,11 +66,26 @@ export default function CourseDetail({ course, user }) {
                 userName: user.name,
                 userEmail: user.email
             });
+            
             alert("👑 Offering Received. Please wait for verification.");
+            navigate("/"); // Redirect home after success
         } catch (err) {
+            alert("Upload failed. Please check your connection.");
             console.error(err);
-        } finally { setUploading(false); }
+        } finally { 
+            setUploading(false); 
+        }
     };
+
+    // --- Loading State ---
+    if (loading) return (
+        <div className="min-h-screen flex items-center justify-center">
+            <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+    );
+
+    // --- Error State ---
+    if (!course) return <div className="text-white text-center py-20">Course not found.</div>;
 
     return (
         <div className="min-h-screen pt-28 pb-20 px-4">
@@ -66,46 +128,63 @@ export default function CourseDetail({ course, user }) {
                     <div className="lg:col-span-1">
                         <div className="sticky top-32 p-[2px] rounded-[35px] bg-gradient-to-b from-amber-400/40 to-transparent shadow-2xl">
                             <div className="bg-slate-900/80 backdrop-blur-3xl p-8 rounded-[34px] border border-white/10 text-center">
-                                <h3 className="text-2xl font-black text-white mb-2 tracking-tight">Enroll Today</h3>
-                                <p className="text-white/40 text-sm mb-6">Exchange for Lifetime Access</p>
                                 
-                                <div className="text-4xl font-black text-white mb-8">
-                                    <span className="text-amber-500 text-xl mr-1">₹</span>
-                                    {course.price}
-                                </div>
-
-                                <div className="space-y-6">
-                                    {/* Custom Styled File Input */}
-                                    <div className="relative group">
-                                        <label className="block text-xs font-black text-amber-500/60 uppercase tracking-widest mb-3">
-                                            Upload Payment Proof
-                                        </label>
-                                        <div className="relative">
-                                            <input 
-                                                type="file" 
-                                                onChange={e => setFile(e.target.files[0])} 
-                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                            />
-                                            <div className="bg-white/5 border-2 border-dashed border-white/20 group-hover:border-amber-500/50 py-6 rounded-2xl transition-all">
-                                                <span className="text-white/60 text-sm font-medium">
-                                                    {file ? file.name : "Choose Screenshot"}
-                                                </span>
-                                            </div>
-                                        </div>
+                                {enrollmentStatus === "Pending" ? (
+                                    <div className="py-10 space-y-4">
+                                        <div className="text-4xl animate-pulse">⏳</div>
+                                        <h3 className="text-xl font-bold text-white">Verification Pending</h3>
+                                        <p className="text-white/40 text-sm italic">Our admins are currently validating your offering. Access will be granted shortly.</p>
                                     </div>
+                                ) : enrollmentStatus === "Verified" ? (
+                                    <div className="py-10 space-y-4">
+                                        <div className="text-4xl">✅</div>
+                                        <h3 className="text-xl font-bold text-white">Already Enrolled</h3>
+                                        <button onClick={() => navigate(`/lesson/${course.$id}`)} className="w-full bg-white text-black py-4 rounded-2xl font-black">Go to Lessons</button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <h3 className="text-2xl font-black text-white mb-2 tracking-tight">Enroll Today</h3>
+                                        <p className="text-white/40 text-sm mb-6">Exchange for Lifetime Access</p>
+                                        
+                                        <div className="text-4xl font-black text-white mb-8">
+                                            <span className="text-amber-500 text-xl mr-1">₹</span>
+                                            {course.price}
+                                        </div>
 
-                                    <button 
-                                        onClick={handlePaymentSubmit} 
-                                        disabled={uploading} 
-                                        className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 py-4 rounded-2xl font-black uppercase tracking-widest transition-all shadow-[0_15px_30px_rgba(245,158,11,0.3)] active:scale-95 disabled:opacity-50"
-                                    >
-                                        {uploading ? "Uploading Proof..." : "Verify Offering"}
-                                    </button>
-                                    
-                                    <p className="text-[10px] text-white/30 italic">
-                                        Scan the UPI QR in the WhatsApp group and upload the successful transaction screenshot here.
-                                    </p>
-                                </div>
+                                        <div className="space-y-6">
+                                            <div className="relative group">
+                                                <label className="block text-xs font-black text-amber-500/60 uppercase tracking-widest mb-3">
+                                                    Upload Payment Proof
+                                                </label>
+                                                <div className="relative">
+                                                    <input 
+                                                        type="file" 
+                                                        accept="image/*"
+                                                        onChange={e => setFile(e.target.files[0])} 
+                                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                                    />
+                                                    <div className="bg-white/5 border-2 border-dashed border-white/20 group-hover:border-amber-500/50 py-6 rounded-2xl transition-all">
+                                                        <span className="text-white/60 text-sm font-medium">
+                                                            {file ? file.name : "Choose Screenshot"}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <button 
+                                                onClick={handlePaymentSubmit} 
+                                                disabled={uploading} 
+                                                className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 py-4 rounded-2xl font-black uppercase tracking-widest transition-all shadow-[0_15px_30px_rgba(245,158,11,0.3)] active:scale-95 disabled:opacity-50"
+                                            >
+                                                {uploading ? "Uploading Proof..." : "Verify Offering"}
+                                            </button>
+                                            
+                                            <p className="text-[10px] text-white/30 italic">
+                                                Scan the UPI QR in the WhatsApp group and upload the successful transaction screenshot here.
+                                            </p>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
