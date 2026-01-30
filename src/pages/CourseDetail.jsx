@@ -1,22 +1,23 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom"; // Essential for routing
-import { databases, storage, ID } from "../lib/appwrite";
+import { useParams, useNavigate } from "react-router-dom";
+import { databases, storage, ID, Query } from "../lib/appwrite";
+import { useAuth } from "../context/AuthContext";
 
-export default function CourseDetail({ user }) {
-    const { id } = useParams(); // Get course ID from URL
+export default function CourseDetail() {
+    const { id } = useParams();
     const navigate = useNavigate();
-    
+    const { user, loading: authLoading } = useAuth();
+
     const [course, setCourse] = useState(null);
     const [file, setFile] = useState(null);
     const [uploading, setUploading] = useState(false);
-    const [loading, setLoading] = useState(true);
+    const [pageLoading, setPageLoading] = useState(true);
     const [enrollmentStatus, setEnrollmentStatus] = useState(null);
 
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
-                setLoading(true);
-                // 1. Fetch Course Details (Fixes the undefined error on refresh)
+                // 1. Fetch Course Content
                 const courseData = await databases.getDocument(
                     import.meta.env.VITE_DATABASE_ID,
                     "courses",
@@ -24,14 +25,14 @@ export default function CourseDetail({ user }) {
                 );
                 setCourse(courseData);
 
-                // 2. Check if user already submitted proof
-                if (user) {
+                // 2. Check Enrollment Status (Only if user identity is confirmed)
+                if (!authLoading && user) {
                     const existing = await databases.listDocuments(
                         import.meta.env.VITE_DATABASE_ID,
                         "enrollments",
                         [
-                            import.meta.env.QUERY.equal("courseId", id),
-                            import.meta.env.QUERY.equal("userId", user.$id)
+                            Query.equal("courseId", id),
+                            Query.equal("userId", user.$id)
                         ]
                     );
                     if (existing.total > 0) {
@@ -41,57 +42,66 @@ export default function CourseDetail({ user }) {
             } catch (err) {
                 console.error("Fetch Error:", err);
             } finally {
-                setLoading(false);
+                setPageLoading(false);
             }
         };
 
-        if (id) fetchInitialData();
-    }, [id, user]);
+        // Re-run whenever auth completes or course ID changes
+        fetchInitialData();
+    }, [id, user, authLoading]);
 
     const handlePaymentSubmit = async () => {
+        if (!user) return alert("Your session is not active. Please log in.");
         if (!file) return alert("Please upload payment screenshot");
-        if (!user) return alert("Please login to enroll");
 
         setUploading(true);
         try {
-            // 1. Upload to Storage
-            const upload = await storage.createFile(import.meta.env.VITE_BUCKET_ID, ID.unique(), file);
+            // Upload Proof to Appwrite Storage
+            const upload = await storage.createFile(
+                import.meta.env.VITE_BUCKET_ID, 
+                ID.unique(), 
+                file
+            );
             
-            // 2. Create Database Entry
-            await databases.createDocument(import.meta.env.VITE_DATABASE_ID, "enrollments", ID.unique(), {
-                userId: user.$id,
-                courseId: course.$id,
-                status: "Pending",
-                screenshotId: upload.$id,
-                userName: user.name,
-                userEmail: user.email
-            });
+            // Create Enrollment Record
+            await databases.createDocument(
+                import.meta.env.VITE_DATABASE_ID, 
+                "enrollments", 
+                ID.unique(), 
+                {
+                    userId: user.$id,
+                    courseId: course.$id,
+                    status: "Pending",
+                    screenshotId: upload.$id,
+                    userName: user.name,
+                    userEmail: user.email
+                }
+            );
             
-            alert("👑 Offering Received. Please wait for verification.");
-            navigate("/"); // Redirect home after success
+            alert("👑 Offering Received. Verification in progress.");
+            navigate("/"); 
         } catch (err) {
-            alert("Upload failed. Please check your connection.");
             console.error(err);
+            alert("Failed to submit. Please try again.");
         } finally { 
             setUploading(false); 
         }
     };
 
-    // --- Loading State ---
-    if (loading) return (
-        <div className="min-h-screen flex items-center justify-center">
+    // --- Master Loading State ---
+    if (pageLoading || authLoading) return (
+        <div className="min-h-screen flex items-center justify-center bg-slate-950">
             <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
     );
 
-    // --- Error State ---
-    if (!course) return <div className="text-white text-center py-20">Course not found.</div>;
+    if (!course) return <div className="text-white text-center py-20 bg-slate-950 min-h-screen">Archives empty.</div>;
 
     return (
-        <div className="min-h-screen pt-28 pb-20 px-4">
+        <div className="min-h-screen pt-28 pb-20 px-4 bg-slate-950">
             <div className="max-w-6xl mx-auto">
                 
-                {/* Hero Section */}
+                {/* HERO SECTION: Glass & Gradient */}
                 <div className="relative group rounded-[40px] overflow-hidden border border-white/20 shadow-2xl mb-12">
                     <img 
                         src={course.thumbnailUrl} 
@@ -101,10 +111,10 @@ export default function CourseDetail({ user }) {
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"></div>
                     
                     <div className="absolute bottom-0 left-0 p-8 md:p-12 w-full">
-                        <span className="bg-amber-500 text-slate-950 px-4 py-1 rounded-full text-xs font-black uppercase tracking-[0.2em] mb-4 inline-block shadow-lg">
-                            Premium Curriculum
+                        <span className="bg-amber-500 text-slate-950 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-4 inline-block shadow-lg">
+                            Sacred Curriculum
                         </span>
-                        <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter drop-shadow-2xl">
+                        <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter drop-shadow-2xl italic">
                             {course.title}
                         </h1>
                     </div>
@@ -112,49 +122,56 @@ export default function CourseDetail({ user }) {
 
                 <div className="grid lg:grid-cols-3 gap-10">
                     
-                    {/* Left Side: About */}
+                    {/* LEFT SIDE: Content Description */}
                     <div className="lg:col-span-2 space-y-8">
-                        <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-8 md:p-10 rounded-[35px]">
+                        <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-8 md:p-10 rounded-[35px] shadow-inner">
                             <h3 className="text-2xl font-bold text-amber-400 mb-6 flex items-center gap-3">
-                                <span className="text-3xl">📖</span> About this Wisdom
+                                <span className="text-3xl">📖</span> The Essence
                             </h3>
-                            <p className="text-white/70 text-lg leading-relaxed whitespace-pre-wrap font-medium">
+                            <p className="text-white/70 text-lg leading-relaxed whitespace-pre-wrap font-medium italic">
                                 {course.description}
                             </p>
                         </div>
                     </div>
 
-                    {/* Right Side: Payment Vault */}
+                    {/* RIGHT SIDE: Payment Vault */}
                     <div className="lg:col-span-1">
                         <div className="sticky top-32 p-[2px] rounded-[35px] bg-gradient-to-b from-amber-400/40 to-transparent shadow-2xl">
-                            <div className="bg-slate-900/80 backdrop-blur-3xl p-8 rounded-[34px] border border-white/10 text-center">
+                            <div className="bg-slate-900/90 backdrop-blur-3xl p-8 rounded-[34px] border border-white/10 text-center">
                                 
                                 {enrollmentStatus === "Pending" ? (
                                     <div className="py-10 space-y-4">
-                                        <div className="text-4xl animate-pulse">⏳</div>
-                                        <h3 className="text-xl font-bold text-white">Verification Pending</h3>
-                                        <p className="text-white/40 text-sm italic">Our admins are currently validating your offering. Access will be granted shortly.</p>
+                                        <div className="text-5xl animate-pulse">⏳</div>
+                                        <h3 className="text-xl font-bold text-white">Verification Active</h3>
+                                        <p className="text-white/40 text-sm italic leading-relaxed">
+                                            The Temple Guardians are currently validating your offering. Access will open shortly.
+                                        </p>
                                     </div>
                                 ) : enrollmentStatus === "Verified" ? (
-                                    <div className="py-10 space-y-4">
-                                        <div className="text-4xl">✅</div>
-                                        <h3 className="text-xl font-bold text-white">Already Enrolled</h3>
-                                        <button onClick={() => navigate(`/lesson/${course.$id}`)} className="w-full bg-white text-black py-4 rounded-2xl font-black">Go to Lessons</button>
+                                    <div className="py-10 space-y-6">
+                                        <div className="text-5xl">✨</div>
+                                        <h3 className="text-xl font-bold text-white uppercase tracking-widest">Entry Granted</h3>
+                                        <button 
+                                            onClick={() => navigate(`/lesson/${course.$id}`)} 
+                                            className="w-full bg-white text-slate-950 py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-amber-400 transition-colors"
+                                        >
+                                            Enter Classroom
+                                        </button>
                                     </div>
                                 ) : (
                                     <>
-                                        <h3 className="text-2xl font-black text-white mb-2 tracking-tight">Enroll Today</h3>
-                                        <p className="text-white/40 text-sm mb-6">Exchange for Lifetime Access</p>
+                                        <h3 className="text-2xl font-black text-white mb-2 tracking-tight">Claim Access</h3>
+                                        <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-6">Lifetime Wisdom Exchange</p>
                                         
-                                        <div className="text-4xl font-black text-white mb-8">
+                                        <div className="text-5xl font-black text-white mb-8">
                                             <span className="text-amber-500 text-xl mr-1">₹</span>
                                             {course.price}
                                         </div>
 
-                                        <div className="space-y-6">
+                                        <div className="space-y-6 text-left">
                                             <div className="relative group">
-                                                <label className="block text-xs font-black text-amber-500/60 uppercase tracking-widest mb-3">
-                                                    Upload Payment Proof
+                                                <label className="block text-[10px] font-black text-amber-500/60 uppercase tracking-[0.2em] mb-3 ml-2">
+                                                    Payment Receipt
                                                 </label>
                                                 <div className="relative">
                                                     <input 
@@ -163,9 +180,9 @@ export default function CourseDetail({ user }) {
                                                         onChange={e => setFile(e.target.files[0])} 
                                                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                                     />
-                                                    <div className="bg-white/5 border-2 border-dashed border-white/20 group-hover:border-amber-500/50 py-6 rounded-2xl transition-all">
-                                                        <span className="text-white/60 text-sm font-medium">
-                                                            {file ? file.name : "Choose Screenshot"}
+                                                    <div className="bg-white/5 border-2 border-dashed border-white/10 group-hover:border-amber-500/50 py-6 rounded-2xl transition-all text-center">
+                                                        <span className="text-white/40 text-xs font-bold">
+                                                            {file ? `✓ ${file.name.substring(0, 15)}...` : "Choose Screenshot"}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -174,13 +191,13 @@ export default function CourseDetail({ user }) {
                                             <button 
                                                 onClick={handlePaymentSubmit} 
                                                 disabled={uploading} 
-                                                className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 py-4 rounded-2xl font-black uppercase tracking-widest transition-all shadow-[0_15px_30px_rgba(245,158,11,0.3)] active:scale-95 disabled:opacity-50"
+                                                className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 py-4 rounded-2xl font-black uppercase tracking-widest transition-all shadow-[0_20px_40px_rgba(245,158,11,0.2)] active:scale-95 disabled:opacity-50"
                                             >
-                                                {uploading ? "Uploading Proof..." : "Verify Offering"}
+                                                {uploading ? "Submitting..." : "Verify Offering"}
                                             </button>
                                             
-                                            <p className="text-[10px] text-white/30 italic">
-                                                Scan the UPI QR in the WhatsApp group and upload the successful transaction screenshot here.
+                                            <p className="text-[10px] text-white/30 text-center italic leading-relaxed">
+                                                Please scan the QR code in the sanctuary group and provide proof of the successful transaction.
                                             </p>
                                         </div>
                                     </>
