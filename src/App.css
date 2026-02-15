@@ -1,20 +1,94 @@
 @import "tailwindcss";
 
-summary::-webkit-details-marker {
-  display: none
+/* Import elegant serif fonts for Vrindavan theme */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Cormorant+Garamond:wght@400;600;700&display=swap');
+
+/* Global Variables */
+:root {
+  --font-serif: 'Playfair Display', 'Cormorant Garamond', serif;
+  --color-saffron: #EA8734;
+  --color-emerald: #10B981;
 }
 
-.checker-background::before {
-  content: "";
+/* 1. Reset Body - Crucial for background visibility */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: transparent; /* Allows VrindavanBackground to show through */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  color: white;
+  overflow-x: hidden;
+}
+
+/* 2. Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif);
+  font-weight: 700;
+}
+
+/* 3. Gradient Text - Brightened for readability */
+.gradient-text-vrindavan {
+  @apply text-transparent bg-clip-text bg-gradient-to-r from-orange-200 via-yellow-100 to-emerald-200;
+}
+
+/* 4. Vrindavan Card Styling - Changed from dark brown to "Light Glass" */
+.card-vrindavan {
+  /* Using white/5 instead of orange-950/40 keeps the background visible */
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px) saturate(120%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  transition: all 0.3s ease;
+}
+
+.card-vrindavan:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+/* 5. Reusable 'Glass' Utility - Pure Neutral */
+.vr-glass {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(16px) saturate(180%);
+}
+
+/* 6. Foreground Trees - Fixed Layering */
+.foreground-tree {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 90;
+}
+
+.foreground-tree img {
+  max-height: 100vh; /* Changed from 110 to 100 to prevent bottom cut-off */
+  width: auto;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* 7. Scenic Elements */
+.video-bg {
   position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  background-image: linear-gradient(#e6e6e690 1px, transparent 1px),
-  linear-gradient(90deg, #e6e6e690 1px, transparent 1px);
-  background-size: 3.7em 3.7em;
-  mask-image: radial-gradient(ellipse at 50% 40%, black 0%, transparent 55%);
-  z-index: -1;
-  background-position-x: center;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 8. Misc UI fixes */
+summary::-webkit-details-marker {
+  display: none;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+/* Accessibility: Hide scrollbar but keep functionality if needed */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
 }

@@ -1,14 +1,70 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Cormorant+Garamond:wght@400;600;700&family=Poppins:wght@300;400;600;700&display=swap');
 @import "tailwindcss";
 
+/* Vrindavan Theme Fonts */
+
+/* Global Styles */
+:root {
+  --font-primary: 'Poppins', sans-serif;
+  --font-serif: 'Playfair Display', 'Cormorant Garamond', serif;
+  --color-saffron: #EA8734;
+  --color-emerald: #10B981;
+  --color-orange-dark: #78350F;
+  --color-orange-light: #FED7AA;
+}
+
+html, body {
+  font-family: var(--font-primary);
+  color: #F5DEB3;
+  /* Remove the dark brown gradient and make it transparent */
+  background: transparent; 
+  min-height: 100vh;
+}
+
+/* Glass Container - Vrindavan Theme */
 .glass-container {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(234, 135, 52, 0.08);
   backdrop-filter: blur(12px) saturate(180%);
   -webkit-backdrop-filter: blur(12px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(234, 135, 52, 0.2);
   border-radius: 24px;
 }
 
-/* For the royal gold/blue glow effect */
+/* Royal Vrindavan shadow */
 .royal-shadow {
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  box-shadow: 0 8px 32px 0 rgba(234, 135, 52, 0.15);
+}
+
+/* Serif font for titles */
+h1, h2, h3, h4, h5, h6, .font-serif {
+  font-family: var(--font-serif);
+}
+
+/* Smooth transitions */
+/* * {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+} */
+
+/* Selection color - Vrindavan theme */
+::selection {
+  background-color: #10B981;
+  color: #FED7AA;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(120, 53, 15, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(234, 135, 52, 0.4);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(234, 135, 52, 0.6);
 }
