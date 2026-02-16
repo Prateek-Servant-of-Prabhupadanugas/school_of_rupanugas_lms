@@ -63,7 +63,7 @@ export const Navbar = () => {
                 {/* Right Side Actions */}
                 <div className="flex items-center gap-4">
                     {user ? (
-                        <div className="flex items-center gap-4 mix-blend-difference">
+                        <div className="flex items-center gap-4 mix-blend-difference shadow-lg">
                             <span 
                                 style={textContrast}
                                 className="hidden lg:block text-white/90 text-[10px] font-black uppercase tracking-widest"
@@ -98,7 +98,7 @@ export const Navbar = () => {
                     {isAdmin && (
                         <div className="hidden md:flex gap-2 ml-2 pl-4 border-l border-white/20">
                             <Link to="/admin" className="p-2 text-emerald-500 hover:text-emerald-400 transition-colors">
-                                <PlusCircle className="w-5 h-5 shadow-sm" />
+                                <PlusCircle className="w-5 h-5 shadow-lg mix-blend-difference" />
                             </Link>
                         </div>
                     )}
@@ -114,7 +114,7 @@ export const Navbar = () => {
 
             {/* Mobile Menu */}
             {isMobileMenuOpen && (
-                <div className="md:hidden mt-4 pt-4 border-t border-white/20 flex flex-col gap-2">
+                <div className="md:hidden mt-4 pt-4 border-t border-white/20 flex flex-col gap-2 mix-blend-difference">
                     {["Home", "About", "Courses", "Contact"].map((item) => (
                         <Link 
                             key={item}
