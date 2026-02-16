@@ -72,7 +72,7 @@ export const Navbar = () => {
                             </span>
                             <button 
                                 onClick={handleLogout}
-                                className="bg-white/20 hover:bg-red-500/20 text-white border border-white/40 px-5 py-2 rounded-xl font-black transition-all active:scale-95 text-[10px] uppercase tracking-widest flex items-center gap-2"
+                                className="bg-white/20 hover:bg-red-500/20 text-black mix-blend-difference border border-white/40 px-5 py-2 rounded-xl font-black transition-all active:scale-95 text-[10px] uppercase tracking-widest flex items-center gap-2"
                             >
                                 <LogOut className="w-3 h-3 text-red-400" /> Logout
                             </button>
@@ -82,7 +82,7 @@ export const Navbar = () => {
                             <Link 
                                 to="/login" 
                                 style={textContrast}
-                                className="text-white font-black px-4 py-2 hover:text-emerald-400 transition-all text-[11px] uppercase tracking-widest"
+                                className="text-black mix-blend-color font-black px-4 py-2 hover:text-emerald-400 transition-all text-[11px] uppercase tracking-widest"
                             >
                                 Login
                             </Link>
@@ -98,14 +98,14 @@ export const Navbar = () => {
                     {isAdmin && (
                         <div className="hidden md:flex gap-2 ml-2 pl-4 border-l border-white/20">
                             <Link to="/admin" className="p-2 text-emerald-500 hover:text-emerald-400 transition-colors">
-                                <PlusCircle className="w-5 h-5 shadow-lg mix-blend-difference" />
+                                <PlusCircle className="w-5 h-5 shadow-lg text-black mix-blend-difference" />
                             </Link>
                         </div>
                     )}
 
                     <button 
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                        className="md:hidden p-2 text-white bg-white/20 rounded-lg border border-white/40"
+                        className="md:hidden p-2 text-black mix-blend-difference bg-white/20 rounded-lg border border-white/40"
                     >
                         {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                     </button>
@@ -120,7 +120,7 @@ export const Navbar = () => {
                             key={item}
                             onClick={() => setIsMobileMenuOpen(false)} 
                             to={item === "Home" ? "/" : `/${item.toLowerCase()}`} 
-                            className="text-white font-black px-4 py-3 rounded-xl hover:bg-white/20 uppercase text-[10px] tracking-widest"
+                            className="text-black mix-blend-difference font-black px-4 py-3 rounded-xl hover:bg-white/20 uppercase text-[10px] tracking-widest"
                         >
                             {item}
                         </Link>
