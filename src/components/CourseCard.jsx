@@ -9,7 +9,7 @@ export default function CourseCard({ course, enrolled = false }) {
 
     return (
         /* The Outer Wrapper creates the 'Rim' of the glass */
-        <div className="group relative p-[1.5px] rounded-[32px] bg-gradient-to-br from-emerald-400/30 via-orange-400/10 to-emerald-500/5 transition-all duration-500 hover:-translate-y-2">
+        <div className="group relative p-[1.5px] rounded-[32px] bg-gradient-to-br from-emerald-400/30 to-emerald-500/5 transition-all duration-500 hover:-translate-y-2">
             
             {/* The Glass Body: 
                1. bg-orange-950/40 (Low opacity background)
